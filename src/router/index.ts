@@ -1,11 +1,17 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import ExcelView from '../views/ExcelView.vue'
 
 const router = createRouter({
 	history: createWebHashHistory(import.meta.env.BASE_URL),
 	routes: [
 		{
 			path: '/',
+			name: 'excel',
+			component: ExcelView
+		},
+		{
+			path: '/home',
 			name: 'home',
 			component: HomeView
 		},

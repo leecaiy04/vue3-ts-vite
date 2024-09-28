@@ -7,5 +7,3 @@ import { RouterView } from 'vue-router'
 		<RouterView />
 	</Suspense>
 </template>
-
-<style scoped></style>
