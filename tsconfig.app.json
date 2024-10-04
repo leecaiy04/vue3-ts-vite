@@ -1,8 +1,9 @@
 {
-	"extends": "@vue/tsconfig/tsconfig.web.json",
-	"include": ["env.d.ts", "src/**/*.d.ts", "src/**/*.ts", "src/**/*.vue", "components.d.ts", "auto-imports.d.ts"],
+	"include": ["env.d.ts", "src/**/*.ts", "src/**/*.vue", "src/@types/*.d.ts", "components.d.ts", "auto-imports.d.ts"],
 	"exclude": ["src/**/__tests__/*", "node_modules"],
 	"compilerOptions": {
+		"strict": true,
+		"verbatimModuleSyntax": true,
 		"forceConsistentCasingInFileNames": false,
 		"esModuleInterop": true,
 		"composite": true,

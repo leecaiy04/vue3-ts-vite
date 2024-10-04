@@ -1,4 +1,17 @@
 import axios from 'axios'
+export async function 分词函数(strArr: Array<string>) {
+	const axiosConfig = {
+		method: 'post',
+		url: 'http://nest.leecaiy.top:11111/cutword/words',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		data: JSON.stringify({
+			data: Array.from(new Set([...strArr]))
+		})
+	}
+	return await axios<Record<string, string[]>>(axiosConfig).then((item) => item.data)
+}
 
 export async function 分词并对比相似度(strArr1: Array<string>, strArr2: Array<string>) {
 	const axiosConfig = {

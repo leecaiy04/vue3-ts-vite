@@ -21,14 +21,14 @@
 				<el-table-column prop="对比数据" label="对比数据" :width="columnsWidth" align="center" />
 			</el-table-column>
 		</el-table>
-		<div class="flex-1 bg-cyan-500 h-1/7">6666</div>
+		<div class="flex-1 bg-cyan-500 h-1/7"></div>
 	</div>
 </template>
 
 <script lang="ts" setup>
 import { 分词并对比相似度, rendHtml } from '@/api/ExcelViewMethods'
 import { ref, onBeforeMount } from 'vue'
-import type { SimilarKey, TableData } from './ExcelView.d.ts'
+import type { SimilarKey, TableData } from '@/@types/ExcelView'
 const tableData = ref<TableData[]>((await import('./data.json')).default)
 const userConfig = ref({
 	minMostSimilarRate: 0.9,
@@ -87,3 +87,4 @@ function confirm最相似项(row: TableData, i: number) {
 	}
 }
 </script>
+../@types/ExcelView.js
