@@ -7,12 +7,16 @@ export async function 分词函数(strArr: Array<string>) {
 			'Content-Type': 'application/json'
 		},
 		data: JSON.stringify({
-			data: Array.from(new Set([...strArr]))
+			data: Array.from(new Set([...strArr])),
+			dict: ['杭政工出', '杭政储出'],
+			synonym: [],
+			stripPunctuation: true
 		})
 	}
 	return await axios<Record<string, string[]>>(axiosConfig).then((item) => item.data)
 }
-
+// 分词函数(['你好', '啊哈，中国']).then(console.log)
+// // { '你好': [ '你好' ], '啊哈，中国': [ '啊哈', '，', '中国' ] }
 export async function 分词并对比相似度(strArr1: Array<string>, strArr2: Array<string>) {
 	const axiosConfig = {
 		method: 'post',
@@ -40,11 +44,25 @@ export async function 分词并对比相似度(strArr1: Array<string>, strArr2: 
 }
 
 export function jaccardSimilarity<T>(arr1: Array<T>, arr2: Array<T>) {
+	if (arr1.length == 0) return 0
+	if (arr2.length == 0) return 0
 	// 计算两个数组的交集大小
 	const intersectionSize = new Set([...arr1].filter((x) => arr2.includes(x)))
-	// 计算两个数组的并集大小
-	const unionSize = new Set([...arr1, ...arr2])
+	// 计算后一个数组的并集大小
+	const unionSize = new Set([...arr2])
 	return unionSize.size === 0 ? 0 : parseFloat((intersectionSize.size / unionSize.size).toFixed(2))
+}
+
+export function jaccardSimilarityWithRate<T extends { length: number }>(arr1: Array<T>, arr2: Array<T>) {
+	// 计算交集的长度总和
+	const intersectionSize = [...arr1].filter((x) => arr2.includes(x)).reduce((sum, element) => sum + element.length, 0)
+
+	// 计算后一个数组的并集大小
+	const unionElements = new Set([...arr2])
+	const unionSize = [...unionElements].reduce((sum, element) => sum + element.length, 0)
+
+	// 返回相似度结果，保留两位小数
+	return unionSize === 0 ? 0 : parseFloat((intersectionSize / unionSize).toFixed(2))
 }
 
 export function rendHtml<T>(
@@ -52,9 +70,8 @@ export function rendHtml<T>(
 	arr2: Array<T>,
 	color: 'red' | 'green' | 'blue' | 'yellow' = 'red'
 ): string {
-	// 计算并返回借卡相似度
 	const str = arr2
-		.map((item) => (!arr1.includes(item) ? `<span style="color: ${color};">${item}</span>` : item))
+		.map((item) => (!arr1.includes(item) ? `<div style="color: ${color};">${item}</div>` : `<div>${item}</div>`))
 		.join('')
 	return `${str}`
 }
