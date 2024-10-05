@@ -1,6 +1,6 @@
 <template>
 	<div id="example1">
-		<hot-table ref="hotTableRef" :settings="hotSettings"></hot-table>
+		<hot-table ref="hotTableRef" :data="data" :settings="hotSettings"></hot-table>
 	</div>
 	<div>
 		<span>选择最相似值最小的数字</span>
@@ -8,45 +8,62 @@
 		<span>相似值显示最小的数字</span>
 		<el-input-number v-model="最小相似度" :min="0" :max="0.9" :step="0.1" />
 		<el-button type="primary" size="default" @click="设置为第一个()">空白的都选择第一个</el-button>
-		<el-button type="primary" size="default" @click="重新计算相似度()">清空</el-button>
+		<el-button type="primary" size="default" @click="Example数据展示()">Example数据展示</el-button>
+		<el-button type="primary" size="default" @click="清空()">清空</el-button>
 	</div>
 </template>
 
 <script lang="ts" setup>
 /// <reference path="handsontable/handsontable.full.d.ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, watch, reactive, onMounted } from 'vue'
 import { HotTable } from '@handsontable/vue3'
 import Handsontable from 'handsontable'
 import { registerAllModules } from 'handsontable/registry'
 import { registerLanguageDictionary, zhCN } from 'handsontable/i18n'
 import 'handsontable/dist/handsontable.full.css'
 import { debounce } from 'lodash'
-// #region Handsontable 的初始化
+import { 综合处理两个字符串, 数据处理先归一后分组词分词, 对两个字符串数组取余弦相似度 } from './tools'
 
+// #region Handsontable 的初始化
 registerAllModules()
 registerLanguageDictionary(zhCN)
 
-const hotTableRef = ref<HTMLDivElement | null>(null)
-const hotSettings = reactive<Handsontable.GridSettings>({
-	maxCols: 9,
-	startRows: 20,
-	startCols: 9,
-	colHeaders: true,
-	manualColumnResize: true,
-	stretchH: 'all',
-	autoWrapRow: true,
-	autoWrapCol: true,
-	wordWrap: true,
-	filters: true,
-	dropdownMenu: true,
-	contextMenu: true, // 启用上下文菜单
-	language: 'zh-CN',
-	persistentState: true,
-	licenseKey: 'non-commercial-and-evaluation'
-})
-// 设置表头
-// 设置数据
-hotSettings.data = JSON.parse(sessionStorage.getItem('handsontableData')!) || [
+const data = [
+	{
+		原始数据: '这是一串很长的字符串',
+		对比数据: '这是一串很短的字符串',
+		最相似项: '',
+		相似1: '',
+		相似2: '',
+		相似3: '',
+		相似4: '',
+		相似5: '',
+		相似6: ''
+	},
+	{
+		原始数据: '可以直接Excel数据到原始数据',
+		对比数据: '可以直接Excel数据到对比数据',
+		最相似项: '',
+		相似1: '',
+		相似2: '',
+		相似3: '',
+		相似4: '',
+		相似5: '',
+		相似6: ''
+	},
+	{
+		原始数据: '完成后直接复制回Excel',
+		对比数据: '完成后可以列\\t行\\n',
+		最相似项: '',
+		相似1: '',
+		相似2: '',
+		相似3: '',
+		相似4: '',
+		相似5: '',
+		相似6: ''
+	}
+]
+const example = [
 	{
 		原始数据: '杭政储出【2022】68号地块商品住宅及商业（设配套幼儿园）项目',
 		对比数据: '杭政储出【2022】68号地块商品住宅及商业（设配套幼儿园）项目',
@@ -75,10 +92,7 @@ hotSettings.data = JSON.parse(sessionStorage.getItem('handsontableData')!) || [
 		最相似项: '',
 		相似1: '',
 		相似2: '',
-		相似3: {
-			str: '西湖大学建设工程三期',
-			similar: 0.5
-		},
+		相似3: '',
 		相似4: '',
 		相似5: '',
 		相似6: ''
@@ -106,6 +120,28 @@ hotSettings.data = JSON.parse(sessionStorage.getItem('handsontableData')!) || [
 		相似6: ''
 	}
 ]
+
+const hotTableRef = ref<(HTMLDivElement & { hotInstance: Handsontable }) | null>(null)
+const hotSettings = reactive<Handsontable.GridSettings>({
+	maxCols: 9,
+	startRows: 8,
+	startCols: 9,
+	minRows: 8,
+	colHeaders: true,
+	manualColumnResize: true,
+	stretchH: 'all',
+	autoWrapRow: true,
+	autoWrapCol: true,
+	wordWrap: true,
+	filters: true,
+	dropdownMenu: true,
+	contextMenu: true, // 启用上下文菜单
+	language: 'zh-CN',
+	persistentState: true,
+	licenseKey: 'non-commercial-and-evaluation'
+})
+// 设置表头
+
 // 设置单元格样式
 hotSettings.cells = function (row, col, prop) {
 	const cellProperties: Partial<Handsontable.CellProperties> = {}
@@ -116,39 +152,36 @@ hotSettings.cells = function (row, col, prop) {
 			row: number,
 			col: number,
 			prop: string | number,
-			value:
-				| string
-				| {
-						strArray?: Array<[string, boolean]>
-						similar: number
-						raw: string
-				  },
+			value: string,
 			cellProperties: Handsontable.CellProperties
 		) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments)
 			td.innerHTML = ''
-			if (value?.strArray instanceof Array) {
-				let count = 1
-				for (const [str, isSame] of value.strArray) {
-					const divText = document.createElement('div')
-					divText.textContent = `${count}. ${str}`
-					if (!isSame) {
+			// 根据当前单元格分词后显示不同颜色
+			if (col >= 3) {
+				const 原始数据Instance = hotInstance.getDataAtRowProp(row, '原始数据') as string
+				const 当前单元格instance = hotInstance.getDataAtCell(row, col) as string
+
+				const splited原始数据Instance = 数据处理先归一后分组词分词(原始数据Instance)
+				const splited当前单元格instance = 数据处理先归一后分组词分词(当前单元格instance)
+
+				splited当前单元格instance.forEach((item, idx) => {
+					const divText = document.createElement('span')
+					divText.textContent = `${item}`
+					if (!splited原始数据Instance.includes(item)) {
 						divText.style.color = 'red'
 					} else {
 						divText.style.color = 'blue'
 					}
 					td.appendChild(divText)
-					count++
+				})
+				// 显示相似度
+				const 相似度 = 对两个字符串数组取余弦相似度(splited原始数据Instance, splited当前单元格instance)
+				if (相似度 >= 最小相似度.value && 相似度 !== 0) {
+					const 相似度Text = document.createElement('div')
+					相似度Text.textContent = `${相似度}`
+					td.appendChild(相似度Text)
 				}
-				if (value.similar > 最小相似度.value) {
-					const buleText = document.createElement('div')
-					buleText.textContent = `相似度：${parseInt(value.similar * 100)}%`
-					td.appendChild(buleText)
-				}
-			} else {
-				const divText = document.createElement('div')
-				divText.textContent = value
-				td.appendChild(divText)
 			}
 		}
 	}
@@ -156,11 +189,7 @@ hotSettings.cells = function (row, col, prop) {
 }
 // 设置列
 hotSettings.columns = function (index) {
-	const columnProperties: Handsontable.ColumnSettings = {
-		title: '',
-		type: 'text',
-		data: ''
-	}
+	const columnProperties: Handsontable.ColumnSettings = {}
 	if (index == 0) {
 		columnProperties.title = '原始数据'
 		columnProperties.data = '原始数据'
@@ -183,145 +212,93 @@ hotSettings.columns = function (index) {
 hotSettings.colWidths = function colWidths(visualColumnIndex) {
 	return document.documentElement.clientWidth / 9
 }
+
+function 重新计算相似度() {
+	if (!hotTableRef.value) throw new Error('hotTableRef.value is null')
+	if (!hotTableRef.value.hotInstance) throw new Error('hotInstance is undefined')
+	// 数据初始化开始操作
+	const tasks = []
+	const hotInstance = hotTableRef.value.hotInstance
+	const 对比数据Array = hotInstance.getDataAtProp('对比数据')
+	for (let i = 0; i < hotInstance.countRows(); i++) {
+		const 对比后的相似度数组 = 对比数据Array
+			.map((item) => 综合处理两个字符串(hotInstance.getDataAtRowProp(i, '原始数据'), item))
+			// 降序
+			.sort((a, b) => b.similarity - a.similarity)
+		// 给第三列，单独设置
+		tasks.push([
+			i,
+			2,
+			对比后的相似度数组[0]?.similarity >= 最小最大相似度.value ? 对比后的相似度数组[0]?.str2 : null,
+			'自动修改'
+		])
+		for (let j = 3; j < hotInstance.countCols(); j++) {
+			tasks.push([
+				i,
+				j,
+				对比后的相似度数组[j - 3]?.similarity >= 最小相似度.value?.similarity !== 0
+					? 对比后的相似度数组[j - 3]?.str2
+					: null,
+				'自动修改'
+			])
+		}
+	}
+	hotInstance.batch(() => {
+		tasks.forEach(([row, col, value, source]) => {
+			hotInstance.setDataAtCell(row, col, value, source)
+		})
+	})
+}
+// 数据初始化完成，所有工作在这里展开
 hotSettings.afterInit = function onAfterInit() {
-	console.log('Hottable初始化完成', hotTableRef.value.hotInstance)
+	const hotInstance = hotTableRef.value.hotInstance as Handsontable
+	hotInstance.addHook('afterChange', function (changes, source) {
+		if (['loadData', '自动修改'].includes(source)) return
+		重新计算相似度()
+	})
 }
 //#endregion
-
 //#region 相似度处理
-import { 分词函数, jaccardSimilarity, jaccardSimilarityWithRate, rendHtml } from '@/api/ExcelViewMethods'
-import { async } from '../../api/ExcelViewMethods'
+const 最小最大相似度 = ref(0.9)
 const 最小相似度 = ref(0.1)
-const 最小最大相似度 = ref(0.5)
 
-const 分词对象: Record<string, string[]> = { '': [] }
-const 相似度对象: Record<
-	string,
-	Array<{
-		strArray: Array<[string, boolean]>
-		similar: number
-		raw?: string
-	}>
-> = { '': { str: '', similar: 0, strArray: [] } }
-
-// hotTableInstance 需要在 mounted 后才能使用
-onMounted(async () => {
-	console.log('mounted')
-	const hotTableInstance: Handsontable = hotTableRef.value.hotInstance
-	async function 速度分词() {
-		const hotTableInstance: Handsontable = hotTableRef.value.hotInstance
-		const 原始数据Data = hotTableInstance.getDataAtProp('原始数据') as string[]
-		const 对比数据Data = hotTableInstance.getDataAtProp('对比数据') as string[]
-		const 新增数据Data = Array.from(new Set(原始数据Data.concat(对比数据Data))).filter((item) => !(item in 分词对象))
-		// console.log(原始数据Data, 对比数据Data, 新增数据Data)
-		Object.assign(分词对象, await 分词函数(新增数据Data))
-	}
-	async function 相似度处理() {
-		await 速度分词()
-		const 原始数据Data = (hotTableInstance.getDataAtProp('原始数据') as string[]) || []
-		const 对比数据Data = (hotTableInstance.getDataAtProp('对比数据') as string[]) || []
-		for (let i = 0; i < 原始数据Data.length; i++) {
-			if (!原始数据Data[i]) {
-				// console.log('原始数据Data[i]', i, 原始数据Data[i])
-				break
-			}
-			// 对非空原始数据进行处理
-			对比数据Data
-				.map((对比数据, j) => {
-					if (!对比数据) {
-						// console.log('对比数据', j, 原始数据Data[i], 对比数据)
-						return { str: '', similar: 0 }
-					}
-					// 对非对比空数据进行处理
-					const similar = jaccardSimilarity(分词对象[原始数据Data[i]], 分词对象[对比数据])
-					if (similar == 0) {
-						// console.log('similar是0； 对比数据', j, 分词对象[原始数据Data[i]], 分词对象[对比数据])
-						return { raw: '', similar: 0, strArray: [] }
-					}
-					return {
-						raw: 对比数据,
-						similar
-					}
-				})
-				.sort((a, b) => b.similar - a.similar)
-				.slice(0, 6)
-				.forEach(
-					(
-						item: {
-							strArray?: Array<[string, boolean]>
-							similar: number
-							raw: string
-						},
-						idx
-					) => {
-						// console.log(i, `相似${idx + 1}`, item, 'afterChange后修改的hook')
-						item.strArray = 分词对象[item.raw].map((v) => [v, 原始数据Data[i].includes(v)])
-						if (item.similar >= 最小最大相似度.value) {
-							hotTableInstance.setDataAtRowProp(i, `最相似项`, item.raw, 'afterChange后修改的hook')
-						}
-						hotTableInstance.setDataAtRowProp(i, `相似${idx + 1}`, item, 'afterChange后修改的hook')
-					}
-				)
-		}
-	}
-	await 相似度处理()
-	// 加载时 执行一次
-	hotTableInstance.addHook('afterChange', async (changes, source) => {
-		if (source === 'loadData') return
-		if (source === 'afterChange后修改的hook') return
-		if (source === '重置') {
-			for (let row = 0; row < 6; row++) {
-				for (let col = 0; col < 9; col++) {
-					hotTableInstance.setDataAtCell(row, col, '', 'afterChange后修改的hook')
-				}
-			}
-			return
-		}
-		debounce(相似度处理, 300)()
-	})
-	// 添加分词的 hover 提示
-	hotTableInstance.addHook(
-		'afterOnCellMouseOver',
-		debounce(function (event, coords, TD) {
-			// console.log(coords, hotTableInstance)
-		}, 500)
-	)
-	// 单击事件
-	hotTableInstance.addHook('afterOnCellMouseDown', function (event, coords, TD) {
-		if (coords.col >= 3) {
-			console.log(coords.row, 2, hotTableInstance.getDataAtCell(coords.row, coords.col).raw, 'afterChange后修改的hook')
-			hotTableInstance.setDataAtCell(
-				coords.row,
-				2,
-				hotTableInstance.getDataAtCell(coords.row, coords.col).raw,
-				'afterChange后修改的hook'
-			)
-		}
-	})
-})
+onMounted(() => watch([最小最大相似度, 最小相似度], () => 重新计算相似度(), { immediate: true }))
+onMounted(() => (document.title = '相似度在线页面'))
 function 设置为第一个() {
-	// 如果html还没有生成，那么直接返回
-	if (!hotTableRef.value) {
-		console.log('hotTableRef 还没完成初始化')
-		return
-	}
-	const hotTableInstance: Handsontable = hotTableRef.value.hotInstance
-	const 最相似项Data = hotTableInstance.getDataAtProp('最相似项')
-	for (let idx in 最相似项Data) {
-		if (!最相似项Data[idx]) {
-			const rowIdx = hotTableInstance.propToCol('相似1')
-			hotTableInstance.setDataAtCell(
-				idx,
-				2,
-				hotTableInstance.getDataAtCell(idx, rowIdx)?.raw,
-				'afterChange后修改的hook'
-			)
-		}
+	if (!hotTableRef.value) throw new Error('hotTableRef.value is null')
+	if (!hotTableRef.value.hotInstance) throw new Error('hotInstance is undefined')
+	// 数据初始化开始操作
+	const tasks = []
+	const hotInstance = hotTableRef.value.hotInstance
+	const 对比数据Array = hotInstance.getDataAtProp('对比数据')
+	for (let i = 0; i < hotInstance.countRows(); i++) {
+		const 对比后的相似度数组 = 对比数据Array
+			.map((item) => 综合处理两个字符串(hotInstance.getDataAtRowProp(i, '原始数据'), item))
+			// 降序
+			.sort((a, b) => b.similarity - a.similarity)
+		// 给第三列，单独设置
+		tasks.push([i, 2, 对比后的相似度数组[0]?.str2, '自动修改'])
+
+		hotInstance.batch(() => {
+			tasks.forEach(([row, col, value, source]) => {
+				hotInstance.setDataAtCell(row, col, value, source)
+			})
+		})
 	}
 }
-function 重新计算相似度() {
-	const hotTableInstance: Handsontable = hotTableRef.value.hotInstance
-	hotTableInstance.runHooks('afterChange', [], '重置')
+function 清空() {
+	if (!hotTableRef.value) throw new Error('hotTableRef.value is null')
+	if (!hotTableRef.value.hotInstance) throw new Error('hotInstance is undefined')
+	const hotInstance = hotTableRef.value.hotInstance
+	hotInstance.clear()
+}
+
+function Example数据展示() {
+	if (!hotTableRef.value) throw new Error('hotTableRef.value is null')
+	if (!hotTableRef.value.hotInstance) throw new Error('hotInstance is undefined')
+	const hotInstance = hotTableRef.value.hotInstance
+	hotInstance.loadData(example)
+	重新计算相似度()
 }
 
 //#endregion

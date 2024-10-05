@@ -18,8 +18,8 @@ const router = createRouter({
 			component: ExcelView
 		},
 		{
-			path: '/excel_demo',
-			name: 'excel_demo',
+			path: '/hottable',
+			name: 'hottable',
 			component: ExcelViewDemo
 		},
 		{
