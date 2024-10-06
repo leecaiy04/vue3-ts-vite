@@ -92,15 +92,15 @@ export function 对两个字符串数组取余弦相似度(arr1: string[], arr2:
 	return parseFloat((dotProd / (magnitude1 * magnitude2)).toFixed(2))
 }
 
-export function 综合处理两个字符串(str1: string | null, str2: string | null) {
+export function 综合处理两个字符串(str1: string | null, str2: string | null, keywords?: string[]) {
 	if (!str1 || !str2)
 		return {
 			str1: '',
 			str2: '',
 			similarity: 0
 		}
-	const str1_list = 数据处理先归一后分组词分词(str1)
-	const str2_list = 数据处理先归一后分组词分词(str2)
+	const str1_list = 数据处理先归一后分组词分词(str1, keywords)
+	const str2_list = 数据处理先归一后分组词分词(str2, keywords)
 	return {
 		str1,
 		str2,

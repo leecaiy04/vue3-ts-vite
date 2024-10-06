@@ -3,7 +3,7 @@ import { onBeforeMount } from 'vue'
 import router from '../router/index'
 
 onBeforeMount(() => {
-	router.push('/hottable')
+	router.push('/displayexcel')
 })
 </script>
 

@@ -1,6 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 import ExcelViewDemo from '@/views/ExcelViewDemo.vue'
+import DisplayExcel from '@/views/DisplayExcel.vue'
+
 import ExcelView from '@/views/ExcelView.vue'
 import HomeView from '@/views/HomeView.vue'
 
@@ -16,6 +18,11 @@ const router = createRouter({
 			path: '/excel',
 			name: 'excel',
 			component: ExcelView
+		},
+		{
+			path: '/displayexcel',
+			name: 'displayexcel',
+			component: DisplayExcel
 		},
 		{
 			path: '/hottable',
