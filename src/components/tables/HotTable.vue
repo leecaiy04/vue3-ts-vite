@@ -23,6 +23,7 @@ import { registerLanguageDictionary, zhCN } from 'handsontable/i18n'
 import 'handsontable/dist/handsontable.full.css'
 import { debounce } from 'lodash'
 import { 综合处理两个字符串, 数据处理先归一后分组词分词, 对两个字符串数组取余弦相似度 } from './tools'
+import { ContextMenu } from 'handsontable/plugins/contextMenu'
 
 // #region Handsontable 的初始化
 registerAllModules()
@@ -211,6 +212,41 @@ hotSettings.columns = function (index) {
 // 设置列宽
 hotSettings.colWidths = function colWidths(visualColumnIndex) {
 	return document.documentElement.clientWidth / 9
+}
+// 设置右键菜单
+hotSettings.contextMenu = {
+	items: {
+		customMenuItem: {
+			name: '添加至‘最相似项’',
+			callback: function (key, selection, clickEvent) {
+				this.setDataAtRowProp(
+					selection[0].start.row,
+					'最相似项',
+					this.getDataAtCell(selection[0].start.row, selection[0].start.col),
+					'自动修改'
+				)
+			}
+		},
+		分割线: ContextMenu.SEPARATOR,
+		undo: {
+			name: '撤销-Undo',
+			disabled: function () {
+				return !this.undoRedo.isUndoAvailable()
+			},
+			callback: function () {
+				this.undo()
+			}
+		},
+		redo: {
+			name: '恢复-Redo',
+			disabled: function () {
+				return !this.undoRedo.isRedoAvailable()
+			},
+			callback: function () {
+				this.redo()
+			}
+		}
+	}
 }
 
 function 重新计算相似度() {
