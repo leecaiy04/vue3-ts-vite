@@ -14,6 +14,9 @@ importers:
       '@handsontable/vue3':
         specifier: ^14.6.0
         version: 14.6.0(handsontable@14.6.0)(vue@3.2.47)
+      '@types/lodash':
+        specifier: ^4.17.10
+        version: 4.17.10
       '@vue-office/excel':
         specifier: ^1.7.11
         version: 1.7.11(vue-demi@0.13.11(vue@3.2.47))(vue@3.2.47)
@@ -659,8 +662,8 @@ packages:
   '@types/lodash-es@4.17.7':
     resolution: {integrity: sha512-z0ptr6UI10VlU6l5MYhGwS4mC8DZyYer2mCoyysZtSF7p26zOX8UpbrV0YpNYLGS8K4PUFIyEr62IMFFjveSiQ==}
 
-  '@types/lodash@4.14.192':
-    resolution: {integrity: sha512-km+Vyn3BYm5ytMO13k9KTp27O75rbQ0NFw+U//g+PX7VZyjCioXaRFisqSIJRECljcTv73G3i6BpglNGHgUQ5A==}
+  '@types/lodash@4.17.10':
+    resolution: {integrity: sha512-YpS0zzoduEhuOWjAotS6A5AVCva7X4lVlYLF0FYHAY9sdraBfnatttHItlWeZdGhuEkf+OzMNg2ZYAx8t+52uQ==}
 
   '@types/minimist@1.2.2':
     resolution: {integrity: sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==}
@@ -4065,9 +4068,9 @@ snapshots:
 
   '@types/lodash-es@4.17.7':
     dependencies:
-      '@types/lodash': 4.14.192
+      '@types/lodash': 4.17.10
 
-  '@types/lodash@4.14.192': {}
+  '@types/lodash@4.17.10': {}
 
   '@types/minimist@1.2.2': {}
 
@@ -4949,7 +4952,7 @@ snapshots:
       '@element-plus/icons-vue': 2.1.0(vue@3.2.47)
       '@floating-ui/dom': 1.2.6
       '@popperjs/core': '@sxzz/popperjs-es@2.11.7'
-      '@types/lodash': 4.14.192
+      '@types/lodash': 4.17.10
       '@types/lodash-es': 4.17.7
       '@vueuse/core': 9.13.0(vue@3.2.47)
       async-validator: 4.2.5

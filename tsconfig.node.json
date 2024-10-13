@@ -1,5 +1,6 @@
 {
 	"include": ["vite.config.*", "vitest.config.*", "cypress.config.*", "playwright.config.*"],
+	"exclude": ["src/**/__tests__/*", "node_modules"],
 	"compilerOptions": {
 		"strict": true,
 		"module": "ESNext",

@@ -58,107 +58,20 @@ import { registerAllModules } from 'handsontable/registry'
 import { registerLanguageDictionary, zhCN } from 'handsontable/i18n'
 import 'handsontable/dist/handsontable.full.css'
 import { ElNotification } from 'element-plus'
-
-import { 综合处理两个字符串, 数据处理先归一后分组词分词, 对两个字符串数组取余弦相似度 } from '@/utils/tools'
 import { ContextMenu } from 'handsontable/plugins/contextMenu'
+import { data } from './data_json'
+import { example } from './example_json'
+import { CellChange, ChangeSource } from 'handsontable/common'
+import { compareStringsCosineSimilarity } from '../utils/相似度'
+import { 对两个字符串数组取余弦相似度, 数据处理先归一后分组词分词 } from '../utils/tools'
+import { fileURLToPath } from 'node:url'
 
 registerAllModules()
 registerLanguageDictionary(zhCN)
 
-const data = [
-	{
-		原始数据: '这是一串很长的字符串99',
-		对比数据: '这是一串很短的字符串99',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	},
-	{
-		原始数据: '可以直接Excel数据到原始数据',
-		对比数据: '可以直接Excel数据到对比数据',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	},
-	{
-		原始数据: '完成后直接复制回Excel',
-		对比数据: '完成后可以列\\t行\\n',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	}
-]
-const example = [
-	{
-		原始数据: '杭政储出【2022】68号地块商品住宅及商业（设配套幼儿园）项目',
-		对比数据: '杭政储出【2022】68号地块商品住宅及商业（设配套幼儿园）项目',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	},
-	{
-		原始数据: '杭政储出【2022】63号地块商品住宅及商业商务（设配套幼儿园）项目',
-		对比数据: '杭政储出【2022】60号地块商品住宅及商业办公项目（含配套设施',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	},
-	{
-		原始数据: '西湖大学建设工程三期',
-		对比数据: '西湖大学校园建设四期工程',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	},
-	{
-		原始数据: '杭政工出【2020】8号菜鸟云谷园区项目',
-		对比数据: '杭政工出【2020】10号阿里云智慧园区项目',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	},
-	{
-		原始数据: '杭政储出【2021】51号地块商业、住宅及服务设施项目',
-		对比数据: '杭政储出【2021】55号地块商业综合体及住宅项目（含社区服务设施）',
-		最相似项: '',
-		相似1: '',
-		相似2: '',
-		相似3: '',
-		相似4: '',
-		相似5: '',
-		相似6: ''
-	}
-]
-const 最小最大相似度 = ref(0.9)
 const 最小相似度 = ref(0.1)
+const 最小最大相似度 = ref(0.9)
+
 const 多行文本字符串整体看待 = ref('杭政储出\n杭政工出')
 const 整体看待的词组 = computed(() => {
 	return Array.from(new Set(多行文本字符串整体看待.value.split('\n'))).filter(Boolean)
@@ -188,9 +101,14 @@ const hotSettings = reactive<Handsontable.GridSettings>({
 })
 hotSettings.contextMenu = {
 	items: {
+		copy: {
+			name: '复制'
+		},
+
 		customMenuItem: {
 			name: '添加至‘最相似项’',
 			callback: function (key, selection, clickEvent) {
+				if (selection[0].start.col < 2) return
 				this.setDataAtRowProp(
 					selection[0].start.row,
 					'最相似项',
@@ -292,15 +210,16 @@ const 数字相似列hotSettings = reactive<Handsontable.ColumnSettings>({
 			td.appendChild(divText)
 		})
 		// 显示相似度
-		const 相似度 = 综合处理两个字符串(原始数据Instance, 当前单元格instance, 整体看待的词组.value)
-		if (相似度.similarity >= 最小相似度.value && 相似度 !== 0) {
+		const 相似度 = compareStringsCosineSimilarity(原始数据Instance, 当前单元格instance, 整体看待的词组.value)
+		if (相似度 >= 最小相似度.value && 相似度 !== 0) {
 			const 相似度Text = document.createElement('div')
-			相似度Text.textContent = `${相似度.similarity}`
+			相似度Text.textContent = `${相似度}`
 			td.appendChild(相似度Text)
 		}
 	}
 })
 
+const 对比的结果 = ref<Record<string, any>>({})
 function 重新计算相似度() {
 	if (!hotTableRef.value) throw new Error('hotTableRef.value is null')
 	if (!hotTableRef.value.hotInstance) throw new Error('hotInstance is undefined')
@@ -309,22 +228,21 @@ function 重新计算相似度() {
 	const hotInstance = hotTableRef.value.hotInstance
 	const 对比数据Array = hotInstance.getDataAtProp('对比数据')
 	for (let i = 0; i < hotInstance.countRows(); i++) {
+		const 本行原始数据: string = hotInstance.getDataAtRowProp(i, '原始数据')
 		const 对比后的相似度数组 = 对比数据Array
-			.map((item) => 综合处理两个字符串(hotInstance.getDataAtRowProp(i, '原始数据'), item, 整体看待的词组.value))
+			.map((item) => [compareStringsCosineSimilarity(本行原始数据, item, 整体看待的词组.value), item])
 			// 降序
-			.sort((a, b) => b.similarity - a.similarity)
+			.sort((a, b) => b[0] - a[0])
+		// 将对比结果存入数组，减少计算了
+		对比的结果.value[本行原始数据] = 对比后的相似度数组
+
 		// 给第三列，单独设置
-		tasks.push([
-			i,
-			2,
-			对比后的相似度数组[0]?.similarity >= 最小最大相似度.value ? 对比后的相似度数组[0]?.str2 : null,
-			'自动修改'
-		])
+		tasks.push([i, 2, 对比后的相似度数组[0][0] >= 最小最大相似度.value ? 对比后的相似度数组[0][1] : null, '自动修改'])
 		for (let j = 3; j < hotInstance.countCols(); j++) {
 			tasks.push([
 				i,
 				j,
-				对比后的相似度数组[j - 3]?.similarity >= 最小相似度.value ? 对比后的相似度数组[j - 3]?.str2 : null,
+				对比后的相似度数组[j - 3][0] >= 最小相似度.value ? 对比后的相似度数组[j - 3][1] : null,
 				'自动修改'
 			])
 		}
@@ -334,6 +252,21 @@ function 重新计算相似度() {
 			hotInstance.setDataAtCell(row, col, value, source)
 		})
 	})
+}
+
+function 增量计算相似度(changes: CellChange[] | null, source: ChangeSource) {
+	// type CellChange = [行号, 列名, 旧数, 新数]
+	if (!changes) return
+
+	const addCol1 = changes.filter((item) => item[1] === '对比数据').map((item) => item[3])
+	const mulseCol1 = changes.filter((item) => item[1] !== '对比数据').map((item) => item[2])
+	// console.log(changes,source)
+	if (!hotTableRef.value) throw new Error('hotTableRef.value is null')
+	if (!hotTableRef.value.hotInstance) throw new Error('hotInstance is undefined')
+	// 数据初始化开始操作
+	const tasks: [number, number, string | null, '自动修改'][] = []
+	const hotInstance = hotTableRef.value.hotInstance
+	const 原始数据Array: string[] = hotInstance.getDataAtProp('原始数据')
 }
 // 数据初始化完成，所有工作在这里展开
 hotSettings.afterInit = function onAfterInit() {
@@ -363,11 +296,14 @@ function 设置为第一个() {
 	const 对比数据Array = hotInstance.getDataAtProp('对比数据')
 	for (let i = 0; i < hotInstance.countRows(); i++) {
 		const 对比后的相似度数组 = 对比数据Array
-			.map((item) => 综合处理两个字符串(hotInstance.getDataAtRowProp(i, '原始数据'), item, 整体看待的词组.value))
+			.map((item) => [
+				compareStringsCosineSimilarity(hotInstance.getDataAtRowProp(i, '原始数据'), item, 整体看待的词组.value),
+				item
+			])
 			// 降序
-			.sort((a, b) => b.similarity - a.similarity)
+			.sort((a, b) => b[0] - a[0])
 		// 给第三列，单独设置
-		tasks.push([i, 2, 对比后的相似度数组[0]?.str2, '自动修改'])
+		tasks.push([i, 2, 对比后的相似度数组[0][1], '自动修改'])
 
 		hotInstance.batch(() => {
 			tasks.forEach(([row, col, value, source]) => {
