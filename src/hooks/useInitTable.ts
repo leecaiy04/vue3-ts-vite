@@ -21,7 +21,8 @@ function renderer_最相似(
 		return td
 	}
 	td.innerText = ''
-	const compareStringInRow: string = instance.getDataAtCell(row, 0)
+	const compareStringInRow = instance.getDataAtCell(row, 0) as string | null
+	if (!compareStringInRow) return td
 	value[0].split('').forEach((item: string) => {
 		const divText = document.createElement('span')
 		divText.textContent = `${item}`
@@ -54,6 +55,7 @@ const renderer_idx = (idx: number) => {
 		}
 		td.innerText = ''
 		const compareStringInRow: string = instance.getDataAtCell(row, 0)
+		if (!value[0] || !compareStringInRow) return td
 		value[0].split('').forEach((item: string) => {
 			const divText = document.createElement('span')
 			divText.textContent = `${item}`
