@@ -61,10 +61,8 @@ import { ElNotification } from 'element-plus'
 import { ContextMenu } from 'handsontable/plugins/contextMenu'
 import { data } from './data_json'
 import { example } from './example_json'
-import { CellChange, ChangeSource } from 'handsontable/common'
 import { compareStringsCosineSimilarity } from '../utils/相似度'
 import { 对两个字符串数组取余弦相似度, 数据处理先归一后分组词分词 } from '../utils/tools'
-import { fileURLToPath } from 'node:url'
 
 registerAllModules()
 registerLanguageDictionary(zhCN)
@@ -254,7 +252,23 @@ function 重新计算相似度() {
 	})
 }
 
-function 增量计算相似度(changes: CellChange[] | null, source: ChangeSource) {
+function 增量计算相似度(
+	changes: Array<[number, string | number, any, any]> | null,
+	source:
+		| 'auto'
+		| 'edit'
+		| 'loadData'
+		| 'updateData'
+		| 'populateFromArray'
+		| 'spliceCol'
+		| 'spliceRow'
+		| 'timeValidate'
+		| 'dateValidate'
+		| 'validateCells'
+		| 'Autofill.fill'
+		| 'ContextMenu.clearColumn'
+		| 'ColumnSummary.reset'
+) {
 	// type CellChange = [行号, 列名, 旧数, 新数]
 	if (!changes) return
 
