@@ -3,6 +3,7 @@
 	"exclude": ["src/**/__tests__/*", "node_modules"],
 	"compilerOptions": {
 		"strict": true,
+		"skipLibCheck": true,
 		"module": "ESNext",
 		"moduleResolution": "node",
 		"composite": true,

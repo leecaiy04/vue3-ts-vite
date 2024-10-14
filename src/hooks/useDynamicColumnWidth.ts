@@ -9,10 +9,7 @@ export function useWindowWidth(hotTableInstance: Ref<Handsontable | null>) {
 		newWidth.value = (document.documentElement.clientWidth - 60) / 9
 		if (!hotTableInstance.value) return
 		hotTableInstance.value.updateSettings({
-			columns: (hotTableInstance.value.getSettings().columns as Array<Handsontable.ColumnSettings>).map((col) => ({
-				...col,
-				width: newWidth.value
-			}))
+			colWidths: newWidth.value
 		})
 	}
 

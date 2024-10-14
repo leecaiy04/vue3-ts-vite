@@ -5,6 +5,7 @@ import 'handsontable/dist/handsontable.full.min.css'
 import { ContextMenu } from 'handsontable/plugins/contextMenu'
 import { registerAllModules } from 'handsontable/registry'
 import { registerLanguageDictionary, zhCN } from 'handsontable/i18n'
+
 const minThreshold = ref(0.1) // 相似度的最小阈值
 const maxLikelihood = ref(0.9) // 最相似值的阈值
 function renderer_最相似(
@@ -34,7 +35,6 @@ function renderer_最相似(
 
 	return td
 }
-
 const renderer_idx = (idx: number) => {
 	const renderer = function (
 		instance: Handsontable,
@@ -64,6 +64,10 @@ const renderer_idx = (idx: number) => {
 			}
 			td.appendChild(divText)
 		})
+		// 增加一行相似度的div
+		const divLikelihood = document.createElement('div')
+		divLikelihood.textContent = `${value[1]}`
+		td.appendChild(divLikelihood)
 		return td
 	}
 	return { renderer, readonly: true }
@@ -100,12 +104,16 @@ export function useInitTable(hotContainer: Ref<HTMLDivElement | null>, hotInstan
 						},
 						customMenuItem: {
 							name: '添加至‘最相似项’',
-							callback: function (key, selection, clickEvent) {
+							callback: function (key, selection) {
 								if (selection[0].start.col < 2) return
+								const firstCellValue: [string, number] | string = this.getDataAtCell(
+									selection[0].start.row,
+									selection[0].start.col
+								)
 								this.setDataAtCell(
 									selection[0].start.row,
 									2,
-									this.getDataAtCell(selection[0].start.row, selection[0].start.col),
+									firstCellValue instanceof Array ? firstCellValue[0] : firstCellValue,
 									'自动修改'
 								)
 							}
