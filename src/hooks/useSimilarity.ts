@@ -48,7 +48,14 @@ export function useSimilarity(
 		// 批量设置数据以减少渲染频率，提升用户体验
 		hotTableInstance.value.batch(() => {
 			Results.forEach((items, idx) => {
-				if (items[0].similarity >= maxLikelihood.value) {
+				if (items[0].similarity === 1) {
+					hotTableInstance.value?.setDataAtCell(idx, 2, [items[0].secondValue, items[0].similarity])
+					hotTableInstance.value?.setDataAtCell(idx, 3, [items[0].secondValue, items[0].similarity])
+					for (let i = 4; i <= 8; i++) {
+						hotTableInstance.value?.setDataAtCell(idx, i, '')
+					}
+					return
+				} else if (items[0].similarity >= maxLikelihood.value) {
 					hotTableInstance.value?.setDataAtCell(idx, 2, [items[0].secondValue, items[0].similarity])
 				} else {
 					hotTableInstance.value?.setDataAtCell(idx, 2, '')
@@ -75,6 +82,6 @@ export function useSimilarity(
 		return true
 	}
 
-	const debounceGetSimilarityTotal = debounce(getSimilarityTotal, 800)
+	const debounceGetSimilarityTotal = debounce(getSimilarityTotal, 1000)
 	return { getSimilarityTotal, debounceGetSimilarityTotal }
 }
