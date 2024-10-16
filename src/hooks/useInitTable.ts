@@ -14,7 +14,7 @@ function renderer_最相似(
 	row: number,
 	col: number,
 	prop: string | number,
-	value: string | [string, number]
+	value: string | [string, number, boolean]
 ) {
 	if (!(value instanceof Array)) {
 		td.innerText = value
@@ -23,6 +23,7 @@ function renderer_最相似(
 	td.innerText = ''
 	const compareStringInRow = instance.getDataAtCell(row, 0) as string | null
 	if (!compareStringInRow) return td
+	if (!value[2]) return td
 	value[0].split('').forEach((item: string) => {
 		const divText = document.createElement('span')
 		divText.textContent = `${item}`
@@ -43,17 +44,21 @@ const renderer_idx = (idx: number) => {
 		row: number,
 		col: number,
 		prop: string | number,
-		value: string | [string, number]
+		value: string | [string, number, boolean]
 	) {
 		if (!(value instanceof Array)) {
 			td.innerText = value
 			return td
 		}
-		if (value[1] < minThreshold.value) {
+		td.innerText = ''
+		if (!value[2]) {
+			return td
+		}
+		if (value[1] < minThreshold.value && value[2]) {
 			td.innerText = `${value[1]}`
 			return td
 		}
-		td.innerText = ''
+
 		const compareStringInRow: string = instance.getDataAtCell(row, 0)
 		if (!value[0] || !compareStringInRow) return td
 		value[0].split('').forEach((item: string) => {
@@ -75,6 +80,19 @@ const renderer_idx = (idx: number) => {
 	return { renderer, readonly: true }
 }
 export function useInitTable(hotContainer: Ref<HTMLDivElement | null>, hotInstance: Ref<Handsontable | null>) {
+	function reRender() {
+		// 不重新计算，仅设置是否显示，然后刷新
+		const datasIn3_8 = hotInstance.value?.getSourceData() as Array<Array<string | [string, number, boolean]>>
+		datasIn3_8.map((row, rowIdx) => {
+			const rewRow = row
+			rewRow.map((cell, cellIdx) => {
+				if (cell instanceof Array && cellIdx === 2) cell[2] = cell[1] >= maxLikelihood.value
+				if (cell instanceof Array && cellIdx >= 3) cell[2] = cell[1] >= minThreshold.value
+			})
+			return rewRow
+		})
+		hotInstance.value?.loadData(datasIn3_8)
+	}
 	onMounted(() => {
 		registerAllModules()
 		registerLanguageDictionary(zhCN)
@@ -159,7 +177,8 @@ export function useInitTable(hotContainer: Ref<HTMLDivElement | null>, hotInstan
 	})
 	return {
 		minThreshold,
-		maxLikelihood
+		maxLikelihood,
+		reRender
 	}
 }
 // 设置动态列宽

@@ -23,7 +23,7 @@
 					:max="1"
 					:step="0.05"
 					:controls="true"
-					@change="debounceGetSimilarityTotal"
+					@change="reRender"
 				>
 				</el-input-number>
 				<el-text class="block text-lg font-semibold mb-4">其他相似阈值</el-text>
@@ -34,7 +34,7 @@
 					:max="0.8"
 					:step="0.1"
 					:controls="true"
-					@change="debounceGetSimilarityTotal"
+					@change="reRender"
 				>
 				</el-input-number>
 			</section>
@@ -43,7 +43,8 @@
 					<el-text class="block text-lg font-semibold mb-4">比较操作区</el-text>
 					<div class="flex flex-wrap gap-4">
 						<el-button type="success" @click="debounceGetSimilarityTotal" class="btn-success">计算相似度</el-button>
-						<el-button type="success" @click="显示所有数据;" class="btn-primary">控制台输出</el-button>
+						<el-button type="success" @click="displayData" class="btn-primary">控制台输出</el-button>
+						<el-button type="success" @click="exportDataToExcel" class="btn-success">导出excel</el-button>
 					</div>
 				</div>
 				<div class="left-section w-full md:w-5/7 bg-white p-6 rounded-lg shadow-md">
@@ -54,7 +55,6 @@
 						<el-button type="success" @click="saveCurrentDataToPersistentState" class="btn-primary">保存数据</el-button>
 						<el-button type="success" @click="clearDataExceptFirstTwoColumns" class="btn-success"> 保留两列 </el-button>
 						<el-button type="success" @click="clearData" class="btn-success">清除所有</el-button>
-						<el-button type="success" @click="exportDataToExcel" class="btn-success">导出excel</el-button>
 					</div>
 				</div>
 			</section>
@@ -81,7 +81,7 @@ import { useDataHandle } from '../hooks/useDataHandle'
 const hotContainer = ref<HTMLDivElement | null>(null)
 const hotInstance = ref<Handsontable | null>(null)
 
-const { maxLikelihood, minThreshold } = useInitTable(hotContainer, hotInstance)
+const { maxLikelihood, minThreshold, reRender } = useInitTable(hotContainer, hotInstance)
 // 设置动态列宽
 useWindowWidth(hotInstance)
 const { getSimilarityTotal, debounceGetSimilarityTotal } = useSimilarity(hotInstance, maxLikelihood, minThreshold)
@@ -94,7 +94,7 @@ const {
 	exportDataToExcel
 } = useDataHandle(hotInstance)
 // 执行按钮的处理函数
-const 显示所有数据 = () => {
+const displayData = () => {
 	console.log('执行操作1:', hotInstance.value?.getData())
 }
 </script>

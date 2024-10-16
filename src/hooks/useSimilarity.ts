@@ -48,17 +48,17 @@ export function useSimilarity(
 		// 批量设置数据以减少渲染频率，提升用户体验
 		hotTableInstance.value.batch(() => {
 			Results.forEach((items, idx) => {
-				if (items[0].similarity >= maxLikelihood.value) {
-					hotTableInstance.value?.setDataAtCell(idx, 2, [items[0].secondValue, items[0].similarity])
-				} else {
-					hotTableInstance.value?.setDataAtCell(idx, 2, '')
-				}
+				hotTableInstance.value?.setDataAtCell(idx, 2, [
+					items[0].secondValue,
+					items[0].similarity,
+					items[0].similarity >= maxLikelihood.value
+				])
 				for (let i = 3; i <= 8; i++) {
-					if (items[i - 3].similarity >= minThreshold.value) {
-						hotTableInstance.value?.setDataAtCell(idx, i, [items[i - 3].secondValue, items[i - 3].similarity])
-					} else {
-						hotTableInstance.value?.setDataAtCell(idx, i, '')
-					}
+					hotTableInstance.value?.setDataAtCell(idx, i, [
+						items[i - 3].secondValue,
+						items[i - 3].similarity,
+						items[i - 3].similarity >= minThreshold.value
+					])
 				}
 			})
 		})
@@ -67,12 +67,6 @@ export function useSimilarity(
 		const endTime = performance.now()
 		const timeTaken = ((endTime - startTime) / 1000).toFixed(2)
 		ElMessage.success(`计算完成，耗时 ${timeTaken} 秒`)
-	}
-
-	function getSimilarityExtra() {
-		const originColDatas = hotTableInstance.value?.getSourceData()
-		console.log(originColDatas)
-		return true
 	}
 
 	const debounceGetSimilarityTotal = debounce(getSimilarityTotal, 800)
